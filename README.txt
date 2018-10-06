@@ -7,9 +7,9 @@ Index numbers
 ===================
 Compile the program
 ===================
-    gcc -g -Wall -o serial serial.c -lpthread
-    gcc -g -Wall -o parallel_mutex parallel_mutex.c -lpthread
-    gcc -g -Wall -o parallel_lock parallel_lock.c -lpthread
+    gcc -g -Wall -o serial serial.c -lpthread -lm
+    gcc -g -Wall -o parallel_lock parallel_lock.c -lpthread -lm
+    gcc -g -Wall -o parallel_mutex parallel_mutex.c -lpthread -lm
 
 ===============
 Run the program
@@ -33,7 +33,6 @@ Run the program
         mMember	    - Fraction of Member operations
         mInsert	    - Fraction of Insert operations
         mDelete	    - Fraction of Delete operations
-
 
         Examples: ./parallel_mutex 100 10 0.50 0.30 0.20 8
                   ./parallel_lock 100 10 0.50 0.30 0.20 8

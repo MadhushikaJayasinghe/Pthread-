@@ -5,124 +5,63 @@
 #include <time.h>
 #include "timer.h"
 
+// input args
 long n, m;
-int mMemberOperations, mInsertOperations, mDeleteOperations;
 double mMember, mInsert, mDelete;
-double start, finish, elapsed;
 int thread_count;
+
+int mMemberOps, mInsertOps, mDeleteOps;
+
 struct list_node_s {
     int data;
     struct list_node_s *next;
 };
-pthread_rwlock_t lock;
 struct list_node_s *head = NULL;
 
-int Insert(int value, struct list_node_s **head_p);
+pthread_rwlock_t lock;
 
-int Member(int value, struct list_node_s *head_p);
+void get_args(int argc, char **argv);
 
-int Delete(int value, struct list_node_s **head_pp);
+void usage(char *prog_name);
 
-void Get_args(int argc, char *argv[]);
+int insert(int value, struct list_node_s **head_p);
 
-void Usage(char *prog_name);
+int member(int value, struct list_node_s *head_p);
 
-void *operate(void *rank);
+int delete(int value, struct list_node_s **head_pp);
 
-int main(int argc, char *argv[]) {
-    // get the command line args
-    Get_args(argc, argv);
+void *operate();
 
-    // generate number of each operations
-    mMemberOperations = (int) (mMember * m);
-    mInsertOperations = (int) (mInsert * m);
-    mDeleteOperations = (int) (mDelete * m);
+void get_args(int argc, char **argv) {
+    if (argc != 7) {
+        usage(argv[0]);
+    } else {
+        n = (int) strtol(argv[1], NULL, 10);
+        m = (int) strtol(argv[2], NULL, 10);
+        mMember = atof(argv[3]);
+        mInsert = atof(argv[4]);
+        mDelete = atof(argv[5]);
+        thread_count = (int) strtol(argv[6], NULL, 10);
 
-    head = malloc(sizeof(struct list_node_s));
-    head->next = NULL;
-
-    // create the link list
-    int randValue;
-
-    for (int index = 0; index < n; index++) {
-        randValue = rand() % 65536;
-        Insert(randValue, &head);
-    }
-
-    long thread;
-    pthread_t *thread_handles;
-    thread_handles = malloc(thread_count * sizeof(pthread_t));
-
-    // start the timer
-    GET_TIME(start);
-
-    // create threads
-    for (thread = 0; thread < thread_count; thread++) {
-        pthread_create(&thread_handles[thread], NULL, &operate, (void *) thread);
-    }
-
-    for (thread = 0; thread < thread_count; thread++) {
-        pthread_join(thread_handles[thread], NULL);
-    }
-
-    free(thread_handles);
-
-    // stop the timer
-    GET_TIME(finish);
-    elapsed = finish - start;
-    printf("Elapsed time %e seconds\n", elapsed);
-    return 0;
-}
-
-void *operate(void *rank) {
-    int operationSelector;
-
-    while (m > 0) {
-        // create a random value among 0, 1, 2 to select the operation
-        operationSelector = rand() % 3;
-
-        // create a random value between 0 - (2^16-1)
-        int randomValue;
-        randomValue = rand() % 65536;
-
-
-        if (operationSelector == 0 && mMemberOperations > 0) {
-            // lock the read lock
-            pthread_rwlock_rdlock(&lock);
-
-            Member(randomValue, head);
-            mMemberOperations--;
-            m--;
-
-            // unlock the read lock
-            pthread_rwlock_unlock(&lock);
-
-        } else if (operationSelector == 1 && mInsertOperations > 0) {
-            // lock the write lock
-            pthread_rwlock_wrlock(&lock);
-
-            Insert(randomValue, &head);
-            mInsertOperations--;
-            m--;
-
-            // unlock the write lock
-            pthread_rwlock_unlock(&lock);
-        } else if (operationSelector == 2 && mDeleteOperations > 0) {
-            // lock the write lock
-            pthread_rwlock_wrlock(&lock);
-
-            Delete(randomValue, &head);
-            mDeleteOperations--;
-            m--;
-
-            // unlock the write lock
-            pthread_rwlock_unlock(&lock);
+        if (mMember + mInsert + mDelete != 1) {
+            usage(argv[0]);
+        } else {
+            mMemberOps = (int) (mMember * m);
+            mInsertOps = (int) (mInsert * m);
+            mDeleteOps = (int) (mDelete * m);
         }
     }
-    return 0;
 }
 
-int Insert(int value, struct list_node_s **head_p) {
+void usage(char *prog_name) {
+    fprintf(stderr,
+            "Usage: %s <number of elements> <number of operations> <mMember> <mInsert> <mDelete> <num Of Threads>\n",
+            prog_name);
+    fprintf(stderr, "Sum of mMember, mInsert and mDelete should be equal to 1.\n");
+    exit(0);
+}
+
+int insert(int value, struct list_node_s **head_p) {
     struct list_node_s *current_p = *head_p;
     struct list_node_s *pred_p = NULL;
     struct list_node_s *temp_p;
@@ -146,7 +85,7 @@ int Insert(int value, struct list_node_s **head_p) {
     }
 }
 
-int Member(int value, struct list_node_s *head_p) {
+int member(int value, struct list_node_s *head_p) {
     struct list_node_s *curr_p = head_p;
 
     while (curr_p != NULL && curr_p->data < value)
@@ -159,7 +98,7 @@ int Member(int value, struct list_node_s *head_p) {
     }
 }
 
-int Delete(int value, struct list_node_s **head_pp) {
+int delete(int value, struct list_node_s **head_pp) {
     struct list_node_s *curr_p = *head_pp;
     struct list_node_s *pred_p = NULL;
 
@@ -181,25 +120,89 @@ int Delete(int value, struct list_node_s **head_pp) {
     }
 }
 
-void Get_args(int argc, char *argv[]) {
-    if (argc != 7) {
-        Usage(argv[0]);
-    } else {
-        n = (int) strtol(argv[1], NULL, 10);
-        m = (int) strtol(argv[2], NULL, 10);
-        mMember = atof(argv[3]);
-        mInsert = atof(argv[4]);
-        mDelete = atof(argv[5]);
-        thread_count = (int) strtol(argv[6], NULL, 10);
+void *operate() {
+    int operationSelector;
 
-        if (mMember + mInsert + mDelete != 1) Usage(argv[0]);
+    while (m > 0) {
+        // create a random value among 0, 1, 2 to select the operation
+        operationSelector = rand() % 3;
+
+        // create a random value between 0 - (2^16-1)
+        int randomValue;
+        randomValue = rand() % 65536;
+
+
+        if (operationSelector == 0 && mMemberOps > 0) {
+            // lock the read lock
+            pthread_rwlock_rdlock(&lock);
+
+            member(randomValue, head);
+            mMemberOps--;
+            m--;
+
+            // unlock the read lock
+            pthread_rwlock_unlock(&lock);
+
+        } else if (operationSelector == 1 && mInsertOps > 0) {
+            // lock the write lock
+            pthread_rwlock_wrlock(&lock);
+
+            insert(randomValue, &head);
+            mInsertOps--;
+            m--;
+
+            // unlock the write lock
+            pthread_rwlock_unlock(&lock);
+        } else if (operationSelector == 2 && mDeleteOps > 0) {
+            // lock the write lock
+            pthread_rwlock_wrlock(&lock);
+
+            delete(randomValue, &head);
+            mDeleteOps--;
+            m--;
+
+            // unlock the write lock
+            pthread_rwlock_unlock(&lock);
+        }
     }
+    return 0;
 }
 
-void Usage(char *prog_name) {
-    fprintf(stderr,
-            "Usage: %s <number of elements> <number of operations> <mMember> <mInsert> <mDelete> <num Of Threads>\n",
-            prog_name);
-    fprintf(stderr, "Sum of mMember, mInsert and mDelete should be equal to 1.\n");
-    exit(0);
+int main(int argc, char *argv[]) {
+    // get the command line args
+    get_args(argc, argv);
+
+    head = malloc(sizeof(struct list_node_s));
+    head->next = NULL;
+
+    // create the link list
+    int randValue;
+    for (int index = 0; index < n; index++) {
+        randValue = rand() % 65536;
+        insert(randValue, &head);
+    }
+
+    long thread;
+    pthread_t *thread_handles;
+    thread_handles = malloc(thread_count * sizeof(pthread_t));
+
+    double start, finish, elapsed;
+    // start the timer
+    GET_TIME(start);
+
+    // create threads
+    for (thread = 0; thread < thread_count; thread++) {
+        pthread_create(&thread_handles[thread], NULL, &operate,
+                       (void *) thread);
+    }
+    for (thread = 0; thread < thread_count; thread++) {
+        pthread_join(thread_handles[thread], NULL);
+    }
+    free(thread_handles);
+
+    // stop the timer
+    GET_TIME(finish);
+    elapsed = finish - start;
+    printf("%f", elapsed);
+    return 0;
 }
