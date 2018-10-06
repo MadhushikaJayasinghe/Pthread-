@@ -1,7 +1,3 @@
-//
-// Created by madhushika on 10/5/18.
-//
-
 #ifndef PTHREAD_TIMER_H
 #define PTHREAD_TIMER_H
 
