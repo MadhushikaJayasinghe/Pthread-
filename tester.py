@@ -27,7 +27,7 @@ except CalledProcessError:
     print("Error in compiling parallel_mutex.c")
 
 
-def get_stats(cmd, cycles=100):
+def get_stats(cmd, cycles=35):
     serial_ts = []
     for _ in range(cycles):
         print(cmd)
@@ -44,7 +44,7 @@ def get_stats(cmd, cycles=100):
 
 def get_stats_for_case(case, case_id, prog):
     case_stats = dict()
-    for thread in ["1", "2", "4", "8"]:
+    for thread in ["1", "4", "8"]:
         test_case = case[:]
         if prog == "serial":
             if int(thread) > 1:
@@ -63,7 +63,7 @@ def get_stats_for_case(case, case_id, prog):
 
 # n = 1,000 and m = 10,000, mMember = 0.99, mInsert = 0.005, mDelete = 0.005
 case1 = ["1000", "10000", "0.99", "0.005", "0.005"]
-print(get_stats_for_case(case1, 1, "serial"))
+# print(get_stats_for_case(case1, 1, "serial"))
 # print(get_stats_for_case(case1, 1, "parallel_mutex"))
 # print(get_stats_for_case(case1, 1, "parallel_lock"))
 
@@ -71,7 +71,7 @@ print(get_stats_for_case(case1, 1, "serial"))
 case2 = ["1000", "10000", "0.90", "0.05", "0.05"]
 # print(get_stats_for_case(case2, 2, "serial"))
 # print(get_stats_for_case(case2, 2, "parallel_mutex"))
-# print(get_stats_for_case(case2, 2, "parallel_lock"))
+# print(get_stats_for_case(case2, 2, "parallel_lock")) # prob
 
 # n = 1,000 and m = 10,000, mMember = 0.50, mInsert = 0.25, mDelete = 0.25
 case3 = ["1000", "10000", "0.50", "0.25", "0.25"]
